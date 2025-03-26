@@ -1,0 +1,43 @@
+import os
+import zipfile
+import pandas as pd
+import pdfplumber
+
+def extract_table_from_pdf(pdf_filename):
+    data = []
+    with pdfplumber.open(pdf_filename) as pdf:
+        for page in pdf.pages:
+            tables = page.extract_table()
+            if tables:
+                data.extend(tables)
+    return data
+
+def clean_and_save_data(data, csv_filename):
+    df = pd.DataFrame(data[1:], columns=data[0])
+    
+    legend = {"OD": "Odontológico", "AMB": "Ambulatorial"}
+    df.replace(legend, inplace=True)
+    
+    df.to_csv(csv_filename, index=False, encoding='utf-8')
+    print(f"CSV salvo como {csv_filename}")
+
+def compress_file(csv_filename, zip_filename):
+    with zipfile.ZipFile(zip_filename, 'w', zipfile.ZIP_DEFLATED) as zipf:
+        zipf.write(csv_filename, os.path.basename(csv_filename))
+    os.remove(csv_filename)
+    print(f"Arquivo compactado: {zip_filename}")
+
+def main():
+    pdf_filename = "Anexo_I.pdf"
+    csv_filename = "Rol_Procedimentos.csv"
+    zip_filename = "Teste_SeuNome.zip"
+    
+    data = extract_table_from_pdf(pdf_filename)
+    if data:
+        clean_and_save_data(data, csv_filename)
+        compress_file(csv_filename, zip_filename)
+    else:
+        print("Nenhuma tabela encontrada no PDF.")
+
+if __name__ == "__main__":
+    main()
